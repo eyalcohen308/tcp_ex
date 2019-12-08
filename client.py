@@ -1,17 +1,21 @@
-import socket, sys
-from os import listdir
-from os.path import isfile
+import socket
+import sys
+import os
 
 
-def listener_client(dest_ip, dest_port, local_port):
+def mode_0_listener_client(dest_ip, dest_port, local_port):
 	sock = connect(dest_ip, dest_port)
 	# create list of files names in the current directory
-	files_list = [f for f in listdir('.') if isfile(f)]
-	msg = "1" + " " + str(local_port) + " " + str(files_list)[1:-1].replace(" ", "").replace("'", "")
-	print("my msg", msg)
-	sock.send(msg.encode())
+	files_list = os.listdir(".")
+	files_list_string = ",".join(files_list)
+	msg_to_server = "1 {0} {1}".format(str(local_port), files_list_string)
+	# TODO: delete the next print line.
+	print("msg:", msg_to_server)
+	sock.send(msg_to_server.encode())
 	sock.close()
 
+
+def mode_0_client_server(local_port):
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	server_ip = '0.0.0.0'
 	server_port = local_port
@@ -24,47 +28,47 @@ def listener_client(dest_ip, dest_port, local_port):
 		send_file(data, client_socket)
 
 
-def mode1(ip, port):
+def mode1_user_client(ip, port):
 	while True:
 		print("Search: ", end='')
-		search = input()
-		s = connect(ip, port)
-		msg = "2 " + search
-		s.send(msg.encode())
-		resp = s.recv(4096).decode()
-		s.close()
+		search_txt = input()
+		sock = connect(ip, port)
+		msg_to_server = "2 {0}".format(search_txt)
+		sock.send(msg_to_server.encode())
+		resp = sock.recv(4096).decode()
+		sock.close()
+
 		resp = resp.split(',')
-		resp = [tuple(x.split(' ')) for x in resp]
-		resp.sort(key=lambda tup: tup[0])
-		for i in range(len(resp)):
-			print(i + 1, resp[i][0])
+		file_ip_port_tuples_list = [tuple(x.split(' ')) for x in resp]
+		file_ip_port_tuples_list.sort(key=lambda tup: tup[0])
+		for i, client_data in enumerate(file_ip_port_tuples_list):
+			print(i + 1, client_data[0])
 		print("Choose: ", end='')
 		choice = int(input())
-		usr = resp[choice - 1]
-		get_file(usr[0], usr[1], int(usr[2]))
+		client_data = resp[choice - 1]
+		get_file(client_data[0], client_data[1], int(client_data[2]))
 
 
-def send_file(file_name, s):
-	# s = connect(ip, port)
-	f = open(file_name, 'rb')
-	buff = f.read(1024)
+def send_file(file_name, sock):
+	file_reader = open(file_name, 'rb')
+	buff = file_reader.read(1024)
 	while buff:
-		s.send(buff)
-		buff = f.read(1024)
-	f.close()
-	s.close()
+		sock.send(buff)
+		buff = file_reader.read(1024)
+	file_reader.close()
+	sock.close()
 
 
 def get_file(file_name, ip, port):
-	s = connect(ip, port)
-	s.send(file_name.encode())
-	f = open(file_name, 'wb')
-	buff = s.recv(1024)
+	sock = connect(ip, port)
+	sock.send(file_name.encode())
+	file_writer = open(file_name, 'wb')
+	buff = sock.recv(1024)
 	while buff:
-		f.write(buff)
-		buff = s.recv(1024)
-	f.close()
-	s.close()
+		file_writer.write(buff)
+		buff = sock.recv(1024)
+	file_writer.close()
+	sock.close()
 
 
 def connect(ip, port):
@@ -81,6 +85,8 @@ if __name__ == '__main__':
 	choice = args[0]
 	if choice == "0":
 		dest_ip, dest_port, local_port = args[1], int(args[2]), int(args[3])
-		listener_client(dest_ip, dest_port, local_port)
+		mode_0_listener_client(dest_ip, dest_port, local_port)
+		mode_0_client_server(local_port)
 	elif choice == "1":
-		mode1(args[1], int(args[2]))
+		ip, port = args[1], int(args[2])
+		mode1_user_client(ip, port)

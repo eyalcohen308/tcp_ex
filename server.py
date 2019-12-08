@@ -1,102 +1,109 @@
 import socket as sock
 import sys
+
 clients = []
 
 
 class Client:
-    def __init__(self, ip, port, files):
-        self.ip = ip
-        self.port = port
-        self.files = files
+	def __init__(self, ip, port, files):
+		self.ip = ip
+		self.port = port
+		self.files = files
 
-    def __str__(self):
-        return str(self.files)
+	def __str__(self):
+		return str(self.files)
 
 
 def error():
-    raise TypeError('Error- invalid arguments')
+	raise TypeError('Error- invalid arguments')
 
 
 def is_valid_input(splited_data):
-    list_length = len(splited_data)
-    if list_length < 2:
-        return False
-    choice = splited_data[0]
-    if choice not in ['1', '2']:
-        return False
-    choice = int(choice)
-    if choice == 1 and list_length != 3:
-        return False
-    if choice == 2 and list_length != 2:
-        return False
-    return True
+	list_length = len(splited_data)
+	if list_length < 2:
+		return False
+	choice = splited_data[0]
+	if choice not in ['1', '2']:
+		return False
+	choice = int(choice)
+	if choice == 1 and list_length != 3:
+		return False
+	if choice == 2 and list_length != 2:
+		return False
+	return True
 
 
-def search_file(substring_to_find):
-    files_msg = ""
-    for client in clients:
-        for file in client.files:
-            if substring_to_find in file:
-                files_msg += "{0} {1} {2},".format(file, client.ip, str(client.port))
-    if files_msg:
-        files_msg = files_msg[:-1] + '\n'  # remove the last ',' and add '\n
-    return files_msg
+def search_files_contains(substring_to_find):
+	files_msg = ""
+	for client in clients:
+		for file in client.files:
+			if substring_to_find in file:
+				files_msg += "{0} {1} {2},".format(file, client.ip, str(client.port))
+	if files_msg:
+		files_msg = files_msg[:-1] + '\n'  # remove the last ',' and add '\n
+	return files_msg
 
 
-def search_files(file_name, socket):
-    files_msg = search_file(file_name)
-    socket.send(files_msg.encode())
+def send_files_list(file_name, socket):
+	files_msg = search_files_contains(file_name)
+	socket.send(files_msg.encode())
 
 
 def add_files_to_client(ip, port, files_list):
-    for client in clients:
-        if client.ip == ip and client.port == port:
-            client.files += files_list
-            return
-    # if new client
-    new_client = Client(ip, port, files_list)
-    clients.append(new_client)
+	for client in clients:
+		if client.ip == ip and client.port == port:
+			client.files += files_list
+			return
+	# if new client
+	new_client = Client(ip, port, files_list)
+	clients.append(new_client)
 
 
 def add_client(port, files, ip):
-    # port need to be a number
-    if not port.isdigit():
-        return
-    # make list of files
-    files_list = files.split(',')
-    add_files_to_client(ip, port, files_list)
-    # for x in clients:
-    #     print(x.port, str(x))
+	# port need to be a number
+	if not port.isdigit():
+		return
+	# make list of files
+	files_list = files.split(',')
+
+	# if client exists, add files to it's file, else create new client.
+	for client in clients:
+		if client.ip == ip and client.port == port:
+			client.files += files_list
+			return
+		# if new client
+	new_client = Client(ip, port, files_list)
+	clients.append(new_client)
 
 
 def handle_client(client_data, ip, socket):
-    splited_data = client_data.split(" ")
-    if not is_valid_input(splited_data):
-        return
-    choice = int(splited_data[0])
-    if choice == 1:
-        add_client(splited_data[1], splited_data[2], ip)
-    if choice == 2:
-        search_file(splited_data[1], socket)
+	splited_data = client_data.split(" ")
+	if not is_valid_input(splited_data):
+		return
+	choice = int(splited_data[0])
+	if choice == 1:
+		add_client(splited_data[1], splited_data[2], ip)
+	if choice == 2:
+		send_files_list(splited_data[1], socket)
 
 
 def open_tcp_connection(port):
-    # open tcp connection
-    server = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
-    server_ip = '127.0.0.1'
-    server_port = int(port)
-    server.bind((server_ip, server_port))
-    server.listen(5)  # max number of clients to connect
-    while True:
-        client_socket, client_address = server.accept()
-        data = client_socket.recv(1024)
-        client_ip = client_address[0]
-        handle_client(data.decode(), client_ip, client_socket)
-        client_socket.close()
+	# open tcp connection
+	server = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
+	server_ip = '127.0.0.1'
+	server_port = int(port)
+	server.bind((server_ip, server_port))
+	server.listen(5)  # max number of clients to connect
+	while True:
+		client_socket, client_address = server.accept()
+		data = client_socket.recv(1024)
+		client_ip = client_address[0]
+		handle_client(data.decode(), client_ip, client_socket)
+		client_socket.close()
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        error()
-    else:
-        open_tcp_connection(sys.argv[1])
+	if len(sys.argv) != 2:
+		error()
+	else:
+		open_tcp_connection(sys.argv[1])

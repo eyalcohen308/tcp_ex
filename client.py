@@ -38,15 +38,22 @@ def mode1_user_client(ip, port):
 		resp = sock.recv(4096).decode()
 		sock.close()
 
-		resp = resp.split(',')
-		file_ip_port_tuples_list = [tuple(x.split(' ')) for x in resp]
-		file_ip_port_tuples_list.sort(key=lambda tup: tup[0])
-		for i, client_data in enumerate(file_ip_port_tuples_list):
-			print(i + 1, client_data[0])
+		file_ip_port_tuples_list = []
+
+		# check if there is no files contain's search txt or the search txt is empty.
+		if resp and search_txt:
+			resp = resp.split(',')
+			file_ip_port_tuples_list = [tuple(x.split(' ')) for x in resp]
+			file_ip_port_tuples_list.sort(key=lambda tup: tup[0])
+			for i, client_data in enumerate(file_ip_port_tuples_list):
+				print(i + 1, client_data[0])
 		print("Choose: ", end='')
-		choice = int(input())
-		client_data = resp[choice - 1]
-		get_file(client_data[0], client_data[1], int(client_data[2]))
+		choice = input()
+		# handle non valid choices.
+		choice = int(choice) if choice.isdigit() else 0
+		if choice in range(1, len(file_ip_port_tuples_list) + 1):
+			client_data = file_ip_port_tuples_list[choice - 1]
+			get_file(client_data[0], client_data[1], int(client_data[2]))
 
 
 def send_file(file_name, sock):

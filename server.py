@@ -90,7 +90,7 @@ def handle_client(client_data, ip, socket):
 def open_tcp_connection(port):
 	# open tcp connection
 	server = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
-	server_ip = '127.0.0.1'
+	server_ip = '0.0.0.0'
 	server_port = int(port)
 	server.bind((server_ip, server_port))
 	server.listen(5)  # max number of clients to connect

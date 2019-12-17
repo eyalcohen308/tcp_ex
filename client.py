@@ -4,7 +4,7 @@ import os
 
 
 def mode_0_listener_client(dest_ip, dest_port, local_port):
-	sock = connect(dest_ip, dest_port)
+	sock = open_tcp_connection(dest_ip, dest_port)
 	# create list of files names in the current directory
 	files_list = os.listdir(".")
 	files_list_string = ",".join(files_list)
@@ -32,7 +32,7 @@ def mode1_user_client(ip, port):
 	while True:
 		print("Search: ", end='')
 		search_txt = input()
-		sock = connect(ip, port)
+		sock = open_tcp_connection(ip, port)
 		msg_to_server = "2 {0}".format(search_txt)
 		sock.send(msg_to_server.encode())
 		resp = sock.recv(4096).decode()
@@ -67,7 +67,7 @@ def send_file(file_name, sock):
 
 
 def get_file(file_name, ip, port):
-	sock = connect(ip, port)
+	sock = open_tcp_connection(ip, port)
 	sock.send(file_name.encode())
 	file_writer = open(file_name, 'wb')
 	buff = sock.recv(1024)
@@ -78,7 +78,7 @@ def get_file(file_name, ip, port):
 	sock.close()
 
 
-def connect(ip, port):
+def open_tcp_connection(ip, port):
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.connect((ip, port))
 	return s
